@@ -7,29 +7,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-void output_file(int fd, struct dbheader_t *header) {
-  if (fd < 0) {
-    printf("Bad file description\n");
-    return;
-  }
-
-  header->version = htons(header->version);
-  header->count = htons(header->count);
-  header->magic = htonl(header->magic);
-  header->filesize = htonl(header->filesize);
-
-  if (lseek(fd, 0, SEEK_SET) == -1) {
-    perror("lseek");
-    return;
-  }
-
-  if (write(fd, header, sizeof(struct dbheader_t)) == -1) {
-    printf("Failed to write db header\n");
-    return;
-  }
-}
-
-int create_db_header(int fd, struct dbheader_t **headerOut) {
+int create_db_header(struct dbheader_t **headerOut) {
   struct dbheader_t *header = calloc(1, sizeof(struct dbheader_t));
   if (header == NULL) {
     printf("DB header malloc failed\n");
@@ -46,7 +24,7 @@ int create_db_header(int fd, struct dbheader_t **headerOut) {
   return STATUS_SUCCESS;
 }
 
-int validate_db_header(int fd) {
+int validate_db_header(int fd, struct dbheader_t **headerOut) {
   if (fd < 0) {
     printf("Bad file description");
     return STATUS_ERROR;
@@ -98,4 +76,33 @@ int validate_db_header(int fd) {
   }
 
   return STATUS_SUCCESS;
+}
+
+int read_employees(int fd, struct dbheader_t *header, struct employee_t **employeesOut) {
+    // TODO: Implement this function to read employee records from the database file
+    return STATUS_SUCCESS;
+}
+
+int output_file(int fd, struct dbheader_t *header, struct employee_t *employees){
+    if (fd < 0) {
+      printf("Bad file description\n");
+      return STATUS_ERROR;
+    }
+
+    header->version = htons(header->version);
+    header->count = htons(header->count);
+    header->magic = htonl(header->magic);
+    header->filesize = htonl(header->filesize);
+
+    if (lseek(fd, 0, SEEK_SET) == -1) {
+      perror("lseek");
+      return STATUS_ERROR;
+    }
+
+    if (write(fd, header, sizeof(struct dbheader_t)) == -1) {
+      printf("Failed to write db header\n");
+      return STATUS_ERROR;
+    }
+
+    return STATUS_SUCCESS;
 }
