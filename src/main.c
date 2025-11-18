@@ -17,18 +17,22 @@ int main(int argc, char *argv[]) {
 
   bool newfile = false;
   char *filepath = NULL;
+  char *addstring = NULL;
   int dbfd;
   struct dbheader_t *header = NULL;
   struct employee_t *employees = NULL;
   int c;
 
-  while ((c = getopt(argc, argv, "nf:")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
       break;
     case 'f':
       filepath = optarg;
+      break;
+    case 'a':
+      addstring = optarg;
       break;
     case '?':
       printf("Unknown option - %c\n", c);
@@ -71,12 +75,26 @@ int main(int argc, char *argv[]) {
   printf("Newfile: %d\n", newfile);
   printf("Filepath: %s\n", filepath);
 
+  if (read_employees(dbfd, header, &employees) == STATUS_ERROR) {
+    printf("Failed to read employees from database file\n");
+    return -1;
+  }
+
+  printf("number of employee: %d\n", header->count);
+  if (addstring) {
+    header->count += 1;
+    employees = realloc(employees, header->count * sizeof(struct employee_t));
+    add_employee(dbfd, header, employees, addstring);
+  }
+  printf("number of employee: %d\n", header->count);
+
   if (output_file(dbfd, header, employees) == STATUS_ERROR) {
     printf("Failed to output database file\n");
     return -1;
   }
 
   free(header);
+  free(employees);
 
   return 0;
 }

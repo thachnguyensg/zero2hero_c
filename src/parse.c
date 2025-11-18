@@ -4,6 +4,7 @@
 #include <arpa/inet.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -54,7 +55,7 @@ int validate_db_header(int fd, struct dbheader_t **headerOut) {
     return STATUS_ERROR;
   }
   if (header->magic != HEADER_MAGIC) {
-    printf("Improper header magic\n");
+    printf("Improper header magic (%x)\n", header->magic);
     free(header);
     return STATUS_ERROR;
   }
@@ -73,39 +74,89 @@ int validate_db_header(int fd, struct dbheader_t **headerOut) {
   }
 
   *headerOut = header;
-
   return STATUS_SUCCESS;
 }
 
 int read_employees(int fd, struct dbheader_t *header,
                    struct employee_t **employeesOut) {
-  // TODO: Implement this function to read employee records from the database
-  // file
+  if (fd < 0) {
+    printf("Bad file description\n");
+    return STATUS_ERROR;
+  }
+
+  int count = header->count;
+  struct employee_t *employees = calloc(count, sizeof(struct employee_t));
+  if (employees == NULL) {
+    printf("Employees malloc failed\n");
+    return STATUS_ERROR;
+  }
+
+  if (read(fd, employees, count * sizeof(struct employee_t)) == -1) {
+    printf("Failed to read employees\n");
+    free(employees);
+    return STATUS_ERROR;
+  }
+
+  int i;
+  for (i = 0; i < count; i++) {
+    employees[i].hours = ntohl(employees[i].hours);
+  }
+
+  *employeesOut = employees;
+
+  return STATUS_SUCCESS;
+}
+
+int add_employee(int fd, struct dbheader_t *header,
+                 struct employee_t *employees, char *addstring) {
+  if (fd < 0) {
+    printf("Bad file description\n");
+    return STATUS_ERROR;
+  }
+
+  char *name = strtok(addstring, ",");
+  char *address = strtok(NULL, ",");
+  char *hours = strtok(NULL, ",");
+
+  printf("Adding employee: %s, %s, %s\n", name, address, hours);
+
+  short count = header->count - 1;
+  strncpy(employees[count].name, name, sizeof(employees[count].name));
+  strncpy(employees[count].address, address, sizeof(employees[count].address));
+  employees[count].hours = atoi(hours);
+
   return STATUS_SUCCESS;
 }
 
 int output_file(int fd, struct dbheader_t *header,
                 struct employee_t *employees) {
   if (fd < 0) {
-    printf("Bad file descriptor\n");
+    printf("Bad file description\n");
     return STATUS_ERROR;
   }
-  struct dbheader_t temp_header = {0};
 
-  temp_header.version = htons(header->version);
-  temp_header.count = htons(header->count);
-  temp_header.magic = htonl(header->magic);
-  temp_header.filesize = htonl(header->filesize);
+  int count = header->count;
+
+  header->version = htons(header->version);
+  header->count = htons(header->count);
+  header->magic = htonl(header->magic);
+  header->filesize =
+      htonl(sizeof(struct dbheader_t) + (count * sizeof(struct employee_t)));
 
   if (lseek(fd, 0, SEEK_SET) == -1) {
     perror("lseek");
     return STATUS_ERROR;
   }
 
-  if (write(fd, &temp_header, sizeof(struct dbheader_t)) !=
-      sizeof(struct dbheader_t)) {
+  if (write(fd, header, sizeof(struct dbheader_t)) == -1) {
     printf("Failed to write db header\n");
     return STATUS_ERROR;
+  }
+
+  int i;
+  for (i = 0; i < count; i++) {
+    employees[i].hours = htonl(employees[i].hours);
+    write(fd, &employees[i], sizeof(struct employee_t));
   }
 
   return STATUS_SUCCESS;
