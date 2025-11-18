@@ -1,5 +1,6 @@
 #include "common.h"
 #include "file.h"
+#include "parse.h"
 
 #include <getopt.h>
 #include <stdbool.h>
@@ -16,6 +17,7 @@ int main(int argc, char *argv[]) {
   bool newfile = false;
   char *filepath = NULL;
   int dbfd;
+  struct dbheader_t *header = NULL;
   int c;
 
   while ((c = getopt(argc, argv, "nf:")) != -1) {
@@ -46,16 +48,28 @@ int main(int argc, char *argv[]) {
       printf("Unable to create database file\n");
       return -1;
     }
+
+    if (create_db_header(dbfd, &header) != STATUS_SUCCESS) {
+      printf("Failed to create database header\n");
+      return -1;
+    }
   } else {
     dbfd = open_db_file(filepath);
     if (dbfd == STATUS_ERROR) {
       printf("Unable to open database file\n");
       return -1;
     }
+
+    if (validate_db_header(dbfd) == STATUS_ERROR) {
+      printf("Invalid database header\n");
+      return -1;
+    }
   }
 
   printf("Newfile: %d\n", newfile);
   printf("Filepath: %s\n", filepath);
+
+  output_file(dbfd, header);
 
   return 0;
 }
