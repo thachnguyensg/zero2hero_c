@@ -107,23 +107,43 @@ int read_employees(int fd, struct dbheader_t *header,
   return STATUS_SUCCESS;
 }
 
-int add_employee(int fd, struct dbheader_t *header,
-                 struct employee_t *employees, char *addstring) {
-  if (fd < 0) {
-    printf("Bad file description\n");
+int add_employee(struct dbheader_t *header, struct employee_t **employees,
+                 char *addstring) {
+
+  if (NULL == header)
+    return STATUS_ERROR;
+  if (NULL == employees)
+    return STATUS_ERROR;
+  if (NULL == *employees)
+    return STATUS_ERROR;
+  if (NULL == addstring)
+    return STATUS_ERROR;
+
+  char *name = strtok(addstring, ",");
+  if (NULL == name)
+    return STATUS_ERROR;
+  char *address = strtok(NULL, ",");
+  if (NULL == address)
+    return STATUS_ERROR;
+  char *hours = strtok(NULL, ",");
+  if (NULL == hours)
+    return STATUS_ERROR;
+
+  struct employee_t *empArray = *employees;
+  empArray = realloc(empArray, (header->count + 1) * sizeof(struct employee_t));
+  if (empArray == NULL) {
+    printf("Realloc failed\n");
     return STATUS_ERROR;
   }
 
-  char *name = strtok(addstring, ",");
-  char *address = strtok(NULL, ",");
-  char *hours = strtok(NULL, ",");
+  header->count++;
+  strncpy(empArray[header->count - 1].name, name,
+          sizeof(empArray[header->count - 1].name));
+  strncpy(empArray[header->count - 1].address, address,
+          sizeof(empArray[header->count - 1].address));
+  empArray[header->count - 1].hours = atoi(hours);
 
-  printf("Adding employee: %s, %s, %s\n", name, address, hours);
-
-  short count = header->count - 1;
-  strncpy(employees[count].name, name, sizeof(employees[count].name));
-  strncpy(employees[count].address, address, sizeof(employees[count].address));
-  employees[count].hours = atoi(hours);
+  *employees = empArray;
 
   return STATUS_SUCCESS;
 }

@@ -11,6 +11,8 @@ void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database file>\n", argv[0]);
   printf("\t -n - create new database file\n");
   printf("\t -f - (required) path to database file\n");
+  printf("\t -a - add employee via CSV (name,address,hours)\n");
+  printf("\t -l - list the employees\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -82,9 +84,8 @@ int main(int argc, char *argv[]) {
 
   printf("number of employee: %d\n", header->count);
   if (addstring) {
-    header->count += 1;
-    employees = realloc(employees, header->count * sizeof(struct employee_t));
-    add_employee(dbfd, header, employees, addstring);
+    printf("Adding employee: %s\n", addstring);
+    add_employee(header, &employees, addstring);
   }
   printf("number of employee: %d\n", header->count);
 
