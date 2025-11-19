@@ -20,12 +20,13 @@ int main(int argc, char *argv[]) {
   bool newfile = false;
   char *filepath = NULL;
   char *addstring = NULL;
+  bool listflag = false;
   int dbfd;
   struct dbheader_t *header = NULL;
   struct employee_t *employees = NULL;
   int c;
 
-  while ((c = getopt(argc, argv, "nf:a:")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:l")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -35,6 +36,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'a':
       addstring = optarg;
+      break;
+    case 'l':
+      listflag = true;
       break;
     case '?':
       printf("Unknown option - %c\n", c);
@@ -74,23 +78,23 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  printf("Newfile: %d\n", newfile);
-  printf("Filepath: %s\n", filepath);
-
   if (read_employees(dbfd, header, &employees) == STATUS_ERROR) {
     printf("Failed to read employees from database file\n");
     return -1;
   }
 
-  printf("number of employee: %d\n", header->count);
   if (addstring) {
     printf("Adding employee: %s\n", addstring);
     add_employee(header, &employees, addstring);
   }
   printf("number of employee: %d\n", header->count);
 
+  if (listflag) {
+    list_employees(header, employees);
+  }
+
   if (output_file(dbfd, header, employees) == STATUS_ERROR) {
-    printf("Failed to output database file\n");
+    printf("Failed to write database file\n");
     return -1;
   }
 
