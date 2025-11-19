@@ -5,6 +5,10 @@
 #define NAME_LEN 256
 #define ADDRESS_LEN 256
 
+#define UPDATE_NAME 1
+#define UPDATE_ADDRESS 2
+#define UPDATE_HOURS 4
+
 struct dbheader_t {
         unsigned int magic;
         unsigned short version;
@@ -25,5 +29,6 @@ int add_employee(struct dbheader_t *, struct employee_t **employees, char *addst
 int output_file(int fd, struct dbheader_t *, struct employee_t *employees);
 void list_employees(struct dbheader_t *, struct employee_t *employees);
 int remove_employee_by_name(struct dbheader_t *, struct employee_t *employees, char *name);
+int update_employee(struct dbheader_t *header, struct employee_t *employees, char *name, struct employee_t *newdata, int updateflags);
 
 #endif // !PARSE_H

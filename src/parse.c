@@ -246,3 +246,39 @@ int remove_employee_by_name(struct dbheader_t *header,
 
   return STATUS_SUCCESS;
 }
+
+int update_employee(struct dbheader_t *header, struct employee_t *employees,
+                    char *name, struct employee_t *newdata, int updateflags) {
+  if (NULL == header)
+    return STATUS_ERROR;
+  if (NULL == employees)
+    return STATUS_ERROR;
+  if (NULL == name)
+    return STATUS_ERROR;
+  if (NULL == newdata)
+    return STATUS_ERROR;
+
+  int i;
+  for (i = 0; i < header->count; i++) {
+    if (strncmp(employees[i].name, name, sizeof(employees[i].name)) == 0) {
+      if ((updateflags & UPDATE_NAME) && strlen(newdata->name) > 0) {
+        strncpy(employees[i].name, newdata->name, sizeof(employees[i].name));
+      }
+
+      if ((updateflags & UPDATE_ADDRESS) && strlen(newdata->address) > 0) {
+        strncpy(employees[i].address, newdata->address,
+                sizeof(employees[i].address));
+      }
+
+      if (updateflags & UPDATE_HOURS) {
+        employees[i].hours = newdata->hours;
+      }
+
+      return STATUS_SUCCESS;
+    }
+  }
+
+  printf("Employee name '%s' not found, no update done\n", name);
+
+  return STATUS_SUCCESS;
+}

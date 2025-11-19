@@ -13,6 +13,8 @@ run: clean default
 	./$(TARGET) -f ./newdb.db -l
 	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88"
 	./$(TARGET) -f ./newdb.db -l
+	./$(TARGET) -f ./newdb.db -u "Thach Nguyen" -h "99"
+	./$(TARGET) -f ./newdb.db -l
 
 default: $(TARGET)
 

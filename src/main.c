@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database file>\n", argv[0]);
@@ -23,12 +24,16 @@ int main(int argc, char *argv[]) {
   char *addstring = NULL;
   bool listflag = false;
   char *removestring = NULL;
+  char *updatestring = NULL;
+  char *updatehours = NULL;
+  char *adrstring = NULL;
+  char *namestring = NULL;
   int dbfd;
   struct dbheader_t *header = NULL;
   struct employee_t *employees = NULL;
   int c;
 
-  while ((c = getopt(argc, argv, "nf:a:lr:")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:lr:u:i:h:w:")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -44,6 +49,18 @@ int main(int argc, char *argv[]) {
       break;
     case 'r':
       removestring = optarg;
+      break;
+    case 'u':
+      updatestring = optarg;
+      break;
+    case 'i':
+      namestring = optarg;
+      break;
+    case 'h':
+      updatehours = optarg;
+      break;
+    case 'w':
+      adrstring = optarg;
       break;
     case '?':
       printf("Unknown option - %c\n", c);
@@ -101,6 +118,34 @@ int main(int argc, char *argv[]) {
     if (remove_employee_by_name(header, employees, removestring) ==
         STATUS_ERROR) {
       printf("Failed to remove employee name: %s\n", removestring);
+      return -1;
+    }
+  }
+
+  if (updatestring) {
+    struct employee_t newdata = {0};
+    int updateflags = 0;
+
+    printf("Updating employee %s \n", updatestring);
+    if (updatehours) {
+      printf("Updating hours to %s\n", updatehours);
+      newdata.hours = (unsigned int)atoi(updatehours);
+      updateflags |= UPDATE_HOURS;
+    }
+    if (namestring) {
+      printf("Updating name to %s\n", namestring);
+      strncpy(newdata.name, namestring, sizeof(newdata.name));
+      updateflags |= UPDATE_NAME;
+    }
+    if (adrstring) {
+      printf("Updating address to %s\n", adrstring);
+      strncpy(newdata.address, adrstring, sizeof(newdata.address));
+      updateflags |= UPDATE_ADDRESS;
+    }
+
+    if (update_employee(header, employees, updatestring, &newdata,
+                        updateflags) == STATUS_ERROR) {
+      printf("Failed to update employee %s \n", updatestring);
       return -1;
     }
   }
