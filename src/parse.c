@@ -183,6 +183,10 @@ int output_file(int fd, struct dbheader_t *header,
 }
 
 void list_employees(struct dbheader_t *header, struct employee_t *employees) {
+  if (NULL == header)
+    return;
+  if (NULL == employees)
+    return;
   int i;
   for (i = 0; i < header->count; i++) {
     printf("Employee %d:\n", i + 1);
