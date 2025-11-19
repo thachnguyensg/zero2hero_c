@@ -26,7 +26,7 @@ int create_db_header(struct dbheader_t **headerOut) {
 
 int validate_db_header(int fd, struct dbheader_t **headerOut) {
   if (fd < 0) {
-    printf("Bad file description");
+    printf("Bad file descriptor\n");
     return STATUS_ERROR;
   }
 
@@ -44,9 +44,9 @@ int validate_db_header(int fd, struct dbheader_t **headerOut) {
   }
 
   header->version = ntohs(header->version);
-  header->magic = ntohs(header->magic);
   header->count = ntohs(header->count);
-  header->filesize = ntohs(header->filesize);
+  header->magic = ntohl(header->magic);
+  header->filesize = ntohl(header->filesize);
 
   if (header->version != 1) {
     printf("Improper header version\n");
@@ -58,51 +58,55 @@ int validate_db_header(int fd, struct dbheader_t **headerOut) {
     free(header);
     return STATUS_ERROR;
   }
-  // if (header->count != 1) {
-  //   printf("Improper header version\n");
-  //   free(header);
-  //   return STATUS_ERROR;
-  // }
 
   struct stat dbstat = {0};
   if (fstat(fd, &dbstat) == -1) {
     perror("fstat");
+    free(header);
     return STATUS_ERROR;
   }
 
   if (header->filesize != dbstat.st_size) {
     printf("Improper header filesize\n");
+    free(header);
     return STATUS_ERROR;
   }
+
+  *headerOut = header;
 
   return STATUS_SUCCESS;
 }
 
-int read_employees(int fd, struct dbheader_t *header, struct employee_t **employeesOut) {
-    // TODO: Implement this function to read employee records from the database file
-    return STATUS_SUCCESS;
+int read_employees(int fd, struct dbheader_t *header,
+                   struct employee_t **employeesOut) {
+  // TODO: Implement this function to read employee records from the database
+  // file
+  return STATUS_SUCCESS;
 }
 
-int output_file(int fd, struct dbheader_t *header, struct employee_t *employees){
-    if (fd < 0) {
-      printf("Bad file description\n");
-      return STATUS_ERROR;
-    }
+int output_file(int fd, struct dbheader_t *header,
+                struct employee_t *employees) {
+  if (fd < 0) {
+    printf("Bad file descriptor\n");
+    return STATUS_ERROR;
+  }
+  struct dbheader_t temp_header = {0};
 
-    header->version = htons(header->version);
-    header->count = htons(header->count);
-    header->magic = htonl(header->magic);
-    header->filesize = htonl(header->filesize);
+  temp_header.version = htons(header->version);
+  temp_header.count = htons(header->count);
+  temp_header.magic = htonl(header->magic);
+  temp_header.filesize = htonl(header->filesize);
 
-    if (lseek(fd, 0, SEEK_SET) == -1) {
-      perror("lseek");
-      return STATUS_ERROR;
-    }
+  if (lseek(fd, 0, SEEK_SET) == -1) {
+    perror("lseek");
+    return STATUS_ERROR;
+  }
 
-    if (write(fd, header, sizeof(struct dbheader_t)) == -1) {
-      printf("Failed to write db header\n");
-      return STATUS_ERROR;
-    }
+  if (write(fd, &temp_header, sizeof(struct dbheader_t)) !=
+      sizeof(struct dbheader_t)) {
+    printf("Failed to write db header\n");
+    return STATUS_ERROR;
+  }
 
-    return STATUS_SUCCESS;
+  return STATUS_SUCCESS;
 }

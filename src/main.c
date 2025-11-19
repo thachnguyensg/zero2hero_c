@@ -5,6 +5,7 @@
 #include <getopt.h>
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database file>\n", argv[0]);
@@ -74,6 +75,8 @@ int main(int argc, char *argv[]) {
     printf("Failed to output database file\n");
     return -1;
   }
+
+  free(header);
 
   return 0;
 }
