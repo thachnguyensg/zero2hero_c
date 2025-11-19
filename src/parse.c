@@ -156,11 +156,12 @@ int output_file(int fd, struct dbheader_t *header,
   }
 
   int count = header->count;
+  struct dbheader_t *tmpheader = header;
 
-  header->version = htons(header->version);
-  header->count = htons(header->count);
-  header->magic = htonl(header->magic);
-  header->filesize =
+  tmpheader->version = htons(header->version);
+  tmpheader->count = htons(header->count);
+  tmpheader->magic = htonl(header->magic);
+  tmpheader->filesize =
       htonl(sizeof(struct dbheader_t) + (count * sizeof(struct employee_t)));
 
   if (lseek(fd, 0, SEEK_SET) == -1) {
@@ -168,7 +169,7 @@ int output_file(int fd, struct dbheader_t *header,
     return STATUS_ERROR;
   }
 
-  if (write(fd, header, sizeof(struct dbheader_t)) == -1) {
+  if (write(fd, tmpheader, sizeof(struct dbheader_t)) == -1) {
     printf("Failed to write db header\n");
     return STATUS_ERROR;
   }
@@ -177,6 +178,15 @@ int output_file(int fd, struct dbheader_t *header,
   for (i = 0; i < count; i++) {
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
+  }
+
+  if (header->count * sizeof(struct dbheader_t) < header->filesize) {
+    // truncate file if it got smaller
+    if (ftruncate(fd, sizeof(struct dbheader_t) +
+                          (count * sizeof(struct employee_t))) == -1) {
+      perror("ftruncate");
+      return STATUS_ERROR;
+    }
   }
 
   return STATUS_SUCCESS;
@@ -194,4 +204,45 @@ void list_employees(struct dbheader_t *header, struct employee_t *employees) {
     printf("\tAddress: %s\n", employees[i].address);
     printf("\tHours: %d\n", employees[i].hours);
   }
+}
+
+int remove_employee_by_name(struct dbheader_t *header,
+                            struct employee_t *employees, char *name) {
+
+  if (NULL == header)
+    return STATUS_ERROR;
+  if (NULL == employees)
+    return STATUS_ERROR;
+  if (NULL == name) {
+    printf("NOOP: Name is required to remove employee\n");
+    return STATUS_SUCCESS;
+  }
+
+  int i, ri = -1;
+  for (i = 0; i < header->count; i++) {
+    if (strncmp(employees[i].name, name, sizeof(employees[i].name)) == 0) {
+      ri = i;
+      break;
+    }
+  }
+
+  if (ri == -1) {
+    printf("Employee name '%s' not found, no removal done\n", name);
+    return STATUS_SUCCESS;
+  }
+
+  // shift employees left from removed index
+  for (i = ri; i < header->count - 1; i++) {
+    employees[i] = employees[i + 1];
+  }
+
+  strncpy(employees[header->count - 1].name, "",
+          sizeof(employees[header->count - 1].name));
+  strncpy(employees[header->count - 1].address, "",
+          sizeof(employees[header->count - 1].address));
+  employees[header->count - 1].hours = 0;
+
+  header->count--;
+
+  return STATUS_SUCCESS;
 }

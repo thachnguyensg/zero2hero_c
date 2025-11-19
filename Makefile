@@ -7,8 +7,12 @@ run: clean default
 	./$(TARGET) -f ./newdb.db -n
 	./$(TARGET) -f ./newdb.db
 	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88"
+	./$(TARGET) -f ./newdb.db -a "Thach Nguyen 2,F3 Me Coc,88"
+	./$(TARGET) -f ./newdb.db -a "Thach Nguyen 3,F3 Me Coc,88" -l
+	./$(TARGET) -f ./newdb.db -r "Thach Nguyen"
+	./$(TARGET) -f ./newdb.db -l
 	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88"
-	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88" -l
+	./$(TARGET) -f ./newdb.db -l
 
 default: $(TARGET)
 

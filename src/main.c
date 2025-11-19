@@ -13,6 +13,7 @@ void print_usage(char *argv[]) {
   printf("\t -f - (required) path to database file\n");
   printf("\t -a - add employee via CSV (name,address,hours)\n");
   printf("\t -l - list the employees\n");
+  printf("\t -r - remove employee by name\n");
 }
 
 int main(int argc, char *argv[]) {
@@ -21,12 +22,13 @@ int main(int argc, char *argv[]) {
   char *filepath = NULL;
   char *addstring = NULL;
   bool listflag = false;
+  char *removestring = NULL;
   int dbfd;
   struct dbheader_t *header = NULL;
   struct employee_t *employees = NULL;
   int c;
 
-  while ((c = getopt(argc, argv, "nf:a:l")) != -1) {
+  while ((c = getopt(argc, argv, "nf:a:lr:")) != -1) {
     switch (c) {
     case 'n':
       newfile = true;
@@ -39,6 +41,9 @@ int main(int argc, char *argv[]) {
       break;
     case 'l':
       listflag = true;
+      break;
+    case 'r':
+      removestring = optarg;
       break;
     case '?':
       printf("Unknown option - %c\n", c);
@@ -85,8 +90,21 @@ int main(int argc, char *argv[]) {
 
   if (addstring) {
     printf("Adding employee: %s\n", addstring);
-    add_employee(header, &employees, addstring);
+    if (add_employee(header, &employees, addstring) == STATUS_ERROR) {
+      printf("Failed to add employee: %s\n", addstring);
+      return -1;
+    }
   }
+
+  if (removestring) {
+    printf("Removing employee name: %s\n", removestring);
+    if (remove_employee_by_name(header, employees, removestring) ==
+        STATUS_ERROR) {
+      printf("Failed to remove employee name: %s\n", removestring);
+      return -1;
+    }
+  }
+
   printf("number of employee: %d\n", header->count);
 
   if (listflag) {
