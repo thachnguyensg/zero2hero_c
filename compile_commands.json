@@ -1,0 +1,54 @@
+[
+ {
+  "directory": "/home/thachnguyen/personal/lowlevel/zero2hero_c",
+  "arguments": [
+   "gcc",
+   "-g",
+   "-Iinclude",
+   "-c",
+   "src/srv/file.c",
+   "-o",
+   "obj/srv/file.o"
+  ],
+  "file": "src/srv/file.c"
+ },
+ {
+  "directory": "/home/thachnguyen/personal/lowlevel/zero2hero_c",
+  "arguments": [
+   "gcc",
+   "-g",
+   "-Iinclude",
+   "-c",
+   "src/srv/main.c",
+   "-o",
+   "obj/srv/main.o"
+  ],
+  "file": "src/srv/main.c"
+ },
+ {
+  "directory": "/home/thachnguyen/personal/lowlevel/zero2hero_c",
+  "arguments": [
+   "gcc",
+   "-g",
+   "-Iinclude",
+   "-c",
+   "src/srv/parse.c",
+   "-o",
+   "obj/srv/parse.o"
+  ],
+  "file": "src/srv/parse.c"
+ },
+ {
+  "directory": "/home/thachnguyen/personal/lowlevel/zero2hero_c",
+  "arguments": [
+   "gcc",
+   "-g",
+   "-Iinclude",
+   "-c",
+   "src/srv/svrpoll.c",
+   "-o",
+   "obj/srv/svrpoll.o"
+  ],
+  "file": "src/srv/svrpoll.c"
+ }
+]

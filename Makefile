@@ -1,30 +1,23 @@
-TARGET = bin/dbview
-SRC = $(wildcard src/*.c)
-OBJ = $(patsubst src/%.c, obj/%.o, $(SRC))
+TARGET_SRV = bin/dbserver
+
+SRC_SVR = $(wildcard src/srv/*.c)
+OBJ_SRV = $(patsubst src/srv/%.c, obj/srv/%.o, $(SRC_SVR))
+
 CFLAGS = -g -Iinclude
 
 run: clean default
-	./$(TARGET) -f ./newdb.db -n
-	./$(TARGET) -f ./newdb.db
-	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88"
-	./$(TARGET) -f ./newdb.db -a "Thach Nguyen 2,F3 Me Coc,88"
-	./$(TARGET) -f ./newdb.db -a "Thach Nguyen 3,F3 Me Coc,88" -l
-	./$(TARGET) -f ./newdb.db -r "Thach Nguyen"
-	./$(TARGET) -f ./newdb.db -l
-	./$(TARGET) -f ./newdb.db -a "Thach Nguyen,F3 Me Coc,88"
-	./$(TARGET) -f ./newdb.db -l
-	./$(TARGET) -f ./newdb.db -u "Thach Nguyen" -h "99"
-	./$(TARGET) -f ./newdb.db -l
+	./$(TARGET_SRV) -f ./newdb.db -n -p 8080
 
-default: $(TARGET)
+default: $(TARGET_SRV)
 
 clean:
-	rm -f obj/*.o
+	rm -f obj/srv/*.o
 	rm -f bin/*
 	rm -f *.db
 
-$(TARGET): $(OBJ)
+$(TARGET_SRV): $(OBJ_SRV)
 	gcc -o $@ $?
 
-obj/%.o: src/%.c
+$(OBJ_SRV): obj/srv/%.o: src/srv/%.c
+	@mkdir -p obj/srv
 	gcc $(CFLAGS) -c $< -o $@

@@ -3,3 +3,4 @@ bin/*
 obj/*
 !obj/.gitkeep
 *.db
+.cache/

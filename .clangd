@@ -1,4 +1,3 @@
-If:
-  PathMatch: src/**.c
 CompileFlags:
-  Add: [-I../include]
+  Add: [-Iinclude]
+  CompilationDatabase: .
