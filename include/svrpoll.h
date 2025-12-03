@@ -6,7 +6,7 @@
 #define MAX_CLIENTS 10
 #define BUFFER_SIZE 4096
 
-#define PORT 9090
+#define PORT 8080
 #define BACKLOG 5
 
 typedef enum {
@@ -15,11 +15,12 @@ typedef enum {
     STATE_DISCONNECTED,
     STATE_HELLO,
     STATE_MSG,
-} client_state_t;
+    STATE_GOODBYE,
+} state_e;
 
 typedef struct {
     int fd;
-    client_state_t state;
+    state_e state;
     char buffer[BUFFER_SIZE];
 } clientstate_t;
 

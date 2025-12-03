@@ -20,7 +20,8 @@
 
 clientstate_t clientstates[MAX_CLIENTS];
 
-int poll_loop(short port);
+int poll_loop(short port, struct dbheader_t *dbhdr,
+              struct employee_t *employees);
 
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database file>\n", argv[0]);
@@ -83,7 +84,7 @@ int main(int argc, char *argv[]) {
     case '?':
       printf("Unknown option - %c\n", c);
       break;
-    default:
+    Default:
       return -1;
     }
   }
@@ -174,7 +175,7 @@ int main(int argc, char *argv[]) {
     list_employees(header, employees);
   }
 
-  poll_loop(server_port);
+  poll_loop(server_port, header, employees);
 
   if (output_file(dbfd, header, employees) == STATUS_ERROR) {
     printf("Failed to write database file\n");
@@ -187,7 +188,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int poll_loop(short port) {
+int poll_loop(short port, struct dbheader_t *dbhdr,
+              struct employee_t *employees) {
   int listen_fd, conn_fd, free_slot;
   struct sockaddr_in server_addr, client_addr;
   socklen_t client_size = sizeof(client_addr);
@@ -299,7 +301,10 @@ int poll_loop(short port) {
           nfds--;
         } else {
           // clientstates[i].buffer[bytes_received] = '\0';
-          printf("Received data from client: %s\n", clientstates[slot].buffer);
+          // printf("Received data from client: %s\n",
+          // clientstates[slot].buffer);
+          printf("received data from client %d\n", fd);
+          handle_client_fsm(dbhdr, employees, clientstates);
         }
       }
     }
@@ -308,31 +313,4 @@ int poll_loop(short port) {
   close(listen_fd);
 
   return -1;
-}
-
-void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
-                       clientstate_t *client) {
-  dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
-
-  hdr->type = ntohl(hdr->type);
-  hdr->len = ntohs(hdr->len);
-
-  if (client->state == STATE_HELLO) {
-    if (hdr->type != MSG_HELLO_REQ && hdr->len != 1) {
-      printf("Invalid HELLO message\n");
-      return;
-    }
-
-    dbproto_hello_req_t *hello_req = (dbproto_hello_req_t *)&hdr[1];
-    hello_req->proto = ntohs(hello_req->proto);
-    if (hello_req->proto != PROTO_VERSION) {
-      printf("Unsupported protocol version: %d\n", hello_req->proto);
-      return;
-    }
-
-    client->state = STATE_MSG;
-  }
-
-  if (client->state == STATE_MSG) {
-  }
 }
