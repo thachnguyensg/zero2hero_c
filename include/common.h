@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include "parse.h"
 #include <stdint.h>
 #include <sys/types.h>
 
@@ -21,6 +22,8 @@ typedef enum {
   MSG_EMPLOYEE_DEL_RESP,
 } dbproto_type_e;
 
+typedef enum { ERROR_EMPTY_LIST } error_code_e;
+
 typedef struct {
   dbproto_type_e type;
   uint16_t len;
@@ -37,5 +40,9 @@ typedef struct {
 typedef struct {
   u_int8_t data[1024];
 } dbproto_employee_add_req_t;
+
+typedef struct {
+  struct employee_t employee;
+} dbproto_employee_list_resp_t;
 
 #endif // !COMMON_H

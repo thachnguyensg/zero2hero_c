@@ -1,4 +1,5 @@
 #include "common.h"
+#include "parse.h"
 #include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -76,6 +77,60 @@ int fsm_reply_employee_add(clientstate_t *client, dbproto_hdr_t *hdr,
   return STATUS_SUCCESS;
 }
 
+int fsm_reply_list_employee(clientstate_t *client, dbproto_hdr_t *hdr,
+                            struct dbheader_t *dbhdr,
+                            struct employee_t *employees) {
+  // send first header with employee count
+  hdr->type = htonl(MSG_EMPLOYEE_LIST_RESP);
+  hdr->len = htons(dbhdr->count);
+
+  ssize_t bytes_sent =
+      send(client->fd, client->buffer, sizeof(dbproto_hdr_t), 0);
+  if (bytes_sent == -1) {
+    perror("send");
+    return STATUS_ERROR;
+  }
+
+  // send each employee one by one
+  for (int i = 0; i < dbhdr->count; i++) {
+    hdr->type = htonl(MSG_EMPLOYEE_LIST_RESP);
+    hdr->len = htons(1);
+
+    dbproto_employee_list_resp_t *resp =
+        (dbproto_employee_list_resp_t *)&hdr[1];
+    resp->employee = employees[i];
+    resp->employee.hours = htonl(resp->employee.hours);
+
+    ssize_t bytes_sent =
+        send(client->fd, client->buffer,
+             sizeof(dbproto_hdr_t) + sizeof(dbproto_employee_list_resp_t), 0);
+    if (bytes_sent == -1) {
+      perror("send");
+      return STATUS_ERROR;
+    }
+  }
+  printf("Send %d employees to client\n", dbhdr->count);
+
+  return STATUS_SUCCESS;
+}
+
+int fsm_reply_list_employee_error(clientstate_t *client, dbproto_hdr_t *hdr,
+                                  error_code_e error_code) {
+  uint32_t type;
+  hdr->type = htonl(MSG_ERROR);
+  hdr->len = htons(1);
+
+  error_code_e *ecode = (error_code_e *)&hdr[1];
+  *ecode = htonl(error_code);
+  ssize_t bytes_sent = send(client->fd, client->buffer,
+                            sizeof(dbproto_hdr_t) + sizeof(error_code_e), 0);
+  if (bytes_sent == -1) {
+    perror("send");
+    return STATUS_ERROR;
+  }
+  return STATUS_SUCCESS;
+}
+
 void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
                        clientstate_t *client, int dbfd) {
   dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
@@ -124,6 +179,26 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
       }
 
       printf("Sent EMPLOYEE_ADD_RESP\n");
+    }
+
+    if (hdr->type == MSG_EMPLOYEE_LIST_REQ) {
+      printf("Received MSG_EMPLOYEE_LIST_REQ\n");
+      dbproto_employee_list_resp_t *add_req =
+          (dbproto_employee_list_resp_t *)&hdr[1];
+
+      if (dbhdr->count == 0) {
+        fsm_reply_list_employee_error(client, hdr, ERROR_EMPTY_LIST);
+        printf("Empty Employee List\n");
+        return;
+      }
+      if (fsm_reply_list_employee(client, hdr, dbhdr, *employees) ==
+          STATUS_ERROR) {
+        printf("Failed to send EMPLOYEE_LIST_RESP\n");
+        return;
+      }
+      printf("Employee listing successfully\n");
+
+      printf("Sent MSG_EMPLOYEE_LIST_REQ\n");
     }
   }
 }
