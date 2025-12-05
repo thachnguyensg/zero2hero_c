@@ -1,9 +1,11 @@
 #include "common.h"
+#include "parse.h"
 #include "svrpoll.h"
 #include <arpa/inet.h>
 #include <bits/getopt_core.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,6 +14,7 @@
 
 int send_hello(int fd);
 int send_employee(int fd, char *addstr);
+int list_employees_command(int fd);
 
 void handle_server(int fd) {
   char buf[4096] = {0};
@@ -47,18 +50,25 @@ int main(int argc, char *argv[]) {
   char *hostarg = NULL;
   unsigned short port = 0;
 
+  bool addcmd = false;
+  bool listcmd = false;
+
   int c;
-  while ((c = getopt(argc, argv, "p:h:a:")) != -1) {
+  while ((c = getopt(argc, argv, "p:h:a:l")) != -1) {
     switch (c) {
-    case 'a':
-      addarg = optarg;
-      break;
     case 'p':
       portarg = optarg;
       port = atoi(portarg);
       break;
     case 'h':
       hostarg = optarg;
+      break;
+    case 'a':
+      addcmd = true;
+      addarg = optarg;
+      break;
+    case 'l':
+      listcmd = true;
       break;
     case '?':
       printf("Unknonw option: %c\n", c);
@@ -100,10 +110,19 @@ int main(int argc, char *argv[]) {
     return -1;
   }
 
-  printf("Adding employee: %s\n", addarg);
-  if (send_employee(fd, addarg) == STATUS_ERROR) {
-    close(fd);
-    return -1;
+  if (addcmd) {
+    printf("Adding employee: %s\n", addarg);
+    if (send_employee(fd, addarg) == STATUS_ERROR) {
+      close(fd);
+      return -1;
+    }
+  }
+
+  if (listcmd) {
+    if (list_employees_command(fd) == STATUS_ERROR) {
+      close(fd);
+      return -1;
+    }
   }
 
   close(fd);
@@ -187,5 +206,55 @@ int send_employee(int fd, char *addstr) {
   }
 
   printf("Employee added successfully\n");
+  return STATUS_SUCCESS;
+}
+
+int list_employees_command(int fd) {
+  char buf[4096] = {0};
+
+  dbproto_hdr_t *hdr = (dbproto_hdr_t *)buf;
+  hdr->type = MSG_EMPLOYEE_LIST_REQ;
+  hdr->len = 0;
+
+  hdr->type = htonl(hdr->type);
+  hdr->len = htons(hdr->len);
+
+  if (send(fd, buf, sizeof(dbproto_hdr_t), 0) == -1) {
+    perror("send");
+    return STATUS_ERROR;
+  }
+
+  if (recv(fd, buf, sizeof(dbproto_hdr_t), 0) == -1) {
+    perror("recv");
+    return STATUS_ERROR;
+  }
+
+  hdr->type = ntohl(hdr->type);
+  hdr->len = ntohs(hdr->len);
+
+  if (hdr->type == MSG_ERROR) {
+    printf("Error adding employee\n");
+    return STATUS_ERROR;
+  }
+
+  if (hdr->type != MSG_EMPLOYEE_ADD_RESP) {
+    printf("Unexpected response type: %d\n", hdr->type);
+    return STATUS_ERROR;
+  }
+
+  printf("Listing employee...");
+  dbproto_employee_list_resp_t *emplist =
+      (dbproto_employee_list_resp_t *)&hdr[1];
+
+  for (int i = 0; i < hdr->len / sizeof(dbproto_employee_list_resp_t); i++) {
+    if (recv(fd, emplist, sizeof(dbproto_employee_list_resp_t), 0) == -1) {
+      perror("recv");
+      return STATUS_ERROR;
+    }
+    struct employee_t emp = emplist->employee;
+    emp.hours = ntohs(emp.hours);
+    printf("%s, %s, %d\n", emp.name, emp.address, emp.hours);
+  }
+
   return STATUS_SUCCESS;
 }

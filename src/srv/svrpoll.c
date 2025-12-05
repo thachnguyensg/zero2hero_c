@@ -1,4 +1,5 @@
 #include "common.h"
+#include "parse.h"
 #include <netinet/in.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -76,6 +77,29 @@ int fsm_reply_employee_add(clientstate_t *client, dbproto_hdr_t *hdr,
   return STATUS_SUCCESS;
 }
 
+int fsm_reply_list_employee(clientstate_t *client, dbproto_hdr_t *hdr,
+                            int status, int len) {
+  uint32_t type;
+  if (status == STATUS_SUCCESS) {
+    hdr->type = htonl(MSG_EMPLOYEE_LIST_RESP);
+    hdr->len = htons(len);
+    printf("Employee listing successfully\n");
+  } else {
+    hdr->type = htonl(MSG_ERROR);
+    hdr->len = htons(0);
+    type = MSG_ERROR;
+    printf("Error listing employee\n");
+  }
+
+  ssize_t bytes_sent =
+      send(client->fd, client->buffer, sizeof(dbproto_hdr_t), 0);
+  if (bytes_sent == -1) {
+    perror("send");
+    return STATUS_ERROR;
+  }
+  return STATUS_SUCCESS;
+}
+
 void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
                        clientstate_t *client, int dbfd) {
   dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
@@ -121,6 +145,17 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
 
       if (status == STATUS_SUCCESS) {
         output_file(dbfd, dbhdr, *employees);
+      }
+
+      printf("Sent EMPLOYEE_ADD_RESP\n");
+    }
+
+    if (hdr->type == MSG_EMPLOYEE_LIST_REQ) {
+      printf("Received MSG_EMPLOYEE_LIST_REQ\n");
+      dbproto_employee_add_req_t *add_req =
+          (dbproto_employee_add_req_t *)&hdr[1];
+
+      if (dbhdr->count == 0) {
       }
 
       printf("Sent EMPLOYEE_ADD_RESP\n");
