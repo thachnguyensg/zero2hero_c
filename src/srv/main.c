@@ -20,8 +20,8 @@
 
 clientstate_t clientstates[MAX_CLIENTS];
 
-int poll_loop(short port, struct dbheader_t *dbhdr,
-              struct employee_t *employees);
+int poll_loop(short port, int dbfd, struct dbheader_t *dbhdr,
+              struct employee_t **employees);
 
 void print_usage(char *argv[]) {
   printf("Usage: %s -n -f <database file>\n", argv[0]);
@@ -175,12 +175,12 @@ int main(int argc, char *argv[]) {
     list_employees(header, employees);
   }
 
-  poll_loop(server_port, header, employees);
+  poll_loop(server_port, dbfd, header, &employees);
 
-  if (output_file(dbfd, header, employees) == STATUS_ERROR) {
-    printf("Failed to write database file\n");
-    return -1;
-  }
+  // if (output_file(dbfd, header, employees) == STATUS_ERROR) {
+  //   printf("Failed to write database file\n");
+  //   return -1;
+  // }
 
   free(header);
   free(employees);
@@ -188,8 +188,8 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-int poll_loop(short port, struct dbheader_t *dbhdr,
-              struct employee_t *employees) {
+int poll_loop(short port, int dbfd, struct dbheader_t *dbhdr,
+              struct employee_t **employees) {
   int listen_fd, conn_fd, free_slot;
   struct sockaddr_in server_addr, client_addr;
   socklen_t client_size = sizeof(client_addr);
@@ -300,11 +300,11 @@ int poll_loop(short port, struct dbheader_t *dbhdr,
           printf("Client disconnected or error\n");
           nfds--;
         } else {
-          // clientstates[i].buffer[bytes_received] = '\0';
+          clientstates[slot].buffer[bytes_received] = '\0';
           // printf("Received data from client: %s\n",
           // clientstates[slot].buffer);
           printf("received data from client %d\n", fd);
-          handle_client_fsm(dbhdr, employees, clientstates);
+          handle_client_fsm(dbhdr, employees, clientstates, dbfd);
         }
       }
     }

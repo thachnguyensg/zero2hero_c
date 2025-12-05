@@ -120,14 +120,20 @@ int add_employee(struct dbheader_t *header, struct employee_t **employees,
     return STATUS_ERROR;
 
   char *name = strtok(addstring, ",");
-  if (NULL == name)
+  if (NULL == name) {
+    printf("empty name field\n");
     return STATUS_ERROR;
+  }
   char *address = strtok(NULL, ",");
-  if (NULL == address)
+  if (NULL == address) {
+    printf("empty address field\n");
     return STATUS_ERROR;
+  }
   char *hours = strtok(NULL, ",");
-  if (NULL == hours)
+  if (NULL == hours || atoi(hours) <= 0) {
+    printf("invalid hours field\n");
     return STATUS_ERROR;
+  }
 
   struct employee_t *empArray = *employees;
   empArray = realloc(empArray, (header->count + 1) * sizeof(struct employee_t));
@@ -156,12 +162,12 @@ int output_file(int fd, struct dbheader_t *header,
   }
 
   int count = header->count;
-  struct dbheader_t *tmpheader = header;
+  struct dbheader_t tmpheader = {0};
 
-  tmpheader->version = htons(header->version);
-  tmpheader->count = htons(header->count);
-  tmpheader->magic = htonl(header->magic);
-  tmpheader->filesize =
+  tmpheader.version = htons(header->version);
+  tmpheader.count = htons(header->count);
+  tmpheader.magic = htonl(header->magic);
+  tmpheader.filesize =
       htonl(sizeof(struct dbheader_t) + (count * sizeof(struct employee_t)));
 
   if (lseek(fd, 0, SEEK_SET) == -1) {
@@ -169,7 +175,7 @@ int output_file(int fd, struct dbheader_t *header,
     return STATUS_ERROR;
   }
 
-  if (write(fd, tmpheader, sizeof(struct dbheader_t)) == -1) {
+  if (write(fd, &tmpheader, sizeof(struct dbheader_t)) == -1) {
     printf("Failed to write db header\n");
     return STATUS_ERROR;
   }
@@ -178,6 +184,7 @@ int output_file(int fd, struct dbheader_t *header,
   for (i = 0; i < count; i++) {
     employees[i].hours = htonl(employees[i].hours);
     write(fd, &employees[i], sizeof(struct employee_t));
+    employees[i].hours = ntohl(employees[i].hours);
   }
 
   if (header->count * sizeof(struct dbheader_t) < header->filesize) {

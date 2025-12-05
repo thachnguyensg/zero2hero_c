@@ -2,6 +2,7 @@
 #define COMMON_H
 
 #include <stdint.h>
+#include <sys/types.h>
 
 #define STATUS_ERROR -1
 #define STATUS_SUCCESS 0
@@ -32,5 +33,9 @@ typedef struct {
 typedef struct {
   uint16_t proto;
 } dbproto_hello_resp_t;
+
+typedef struct {
+  u_int8_t data[1024];
+} dbproto_employee_add_req_t;
 
 #endif // !COMMON_H

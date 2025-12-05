@@ -1,5 +1,6 @@
 #include "common.h"
 #include <netinet/in.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <svrpoll.h>
@@ -52,8 +53,31 @@ void fsm_reply_hello_error(clientstate_t *client, dbproto_hdr_t *hdr) {
   }
 }
 
-void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
-                       clientstate_t *client) {
+int fsm_reply_employee_add(clientstate_t *client, dbproto_hdr_t *hdr,
+                           int status) {
+  uint32_t type;
+  if (status == STATUS_SUCCESS) {
+    type = MSG_EMPLOYEE_ADD_RESP;
+    printf("Employee added successfully\n");
+  } else {
+    type = MSG_ERROR;
+    printf("Error adding employee\n");
+  }
+
+  hdr->type = htonl(type);
+  hdr->len = htons(1);
+
+  ssize_t bytes_sent =
+      send(client->fd, client->buffer, sizeof(dbproto_hdr_t), 0);
+  if (bytes_sent == -1) {
+    perror("send");
+    return STATUS_ERROR;
+  }
+  return STATUS_SUCCESS;
+}
+
+void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t **employees,
+                       clientstate_t *client, int dbfd) {
   dbproto_hdr_t *hdr = (dbproto_hdr_t *)client->buffer;
 
   hdr->type = ntohl(hdr->type);
@@ -84,5 +108,22 @@ void handle_client_fsm(struct dbheader_t *dbhdr, struct employee_t *employees,
   }
 
   if (client->state == STATE_MSG) {
+    if (hdr->type == MSG_EMPLOYEE_ADD_REQ) {
+      printf("Received EMPLOYEE_ADD_REQ\n");
+      dbproto_employee_add_req_t *add_req =
+          (dbproto_employee_add_req_t *)&hdr[1];
+
+      int status = add_employee(dbhdr, employees, (char *)add_req->data);
+      if (fsm_reply_employee_add(client, hdr, status) == STATUS_ERROR) {
+        printf("Failed to send EMPLOYEE_ADD_RESP\n");
+        return;
+      }
+
+      if (status == STATUS_SUCCESS) {
+        output_file(dbfd, dbhdr, *employees);
+      }
+
+      printf("Sent EMPLOYEE_ADD_RESP\n");
+    }
   }
 }
